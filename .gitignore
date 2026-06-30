@@ -33,3 +33,6 @@ npm-debug.log*
 # Test / coverage
 coverage/
 .vitest/
+
+# Local session handoff prompts (not part of the repo)
+prompts/
