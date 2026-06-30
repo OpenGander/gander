@@ -1,0 +1,52 @@
+# Promptfoo configuration for OpenGander MCP Server evaluations
+#
+# Run all tests:
+#   promptfoo eval
+#
+# Run specific test files:
+#   promptfoo eval --config tests/tools.yaml
+#   promptfoo eval --config tests/security.yaml
+#
+# Environment variables:
+#   MCP_ENDPOINT - MCP server endpoint (default: http://localhost:8000)
+#   MCP_TEST_API_KEY - Valid API key for functional tests
+#   MCP_TEST_API_KEY_TENANT_A - API key scoped to tenant A
+#   MCP_TEST_API_KEY_TENANT_B - API key scoped to tenant B
+#   MCP_TEST_REVOKED_KEY - A revoked API key for testing
+#   MCP_TEST_EXPIRED_KEY - An expired API key for testing
+
+description: OpenGander MCP Server Evaluations
+
+# Provider configuration
+providers:
+  - id: python:providers/mcp_provider.py:call_tool
+    label: mcp-tool-call
+    config:
+      endpoint: ${MCP_ENDPOINT:-http://localhost:8000}
+
+# Default test configuration
+defaultTest:
+  options:
+    provider:
+      id: python:providers/mcp_provider.py:call_tool
+    timeout: 30000  # 30 seconds
+
+# Test suites - each runs independently
+testSuites:
+  - tests/tools.yaml
+  - tests/security.yaml
+
+# Output configuration
+outputPath: ./output/results.json
+
+# Caching to speed up repeated runs
+cache: true
+cacheDirectory: ./.promptfoo-cache
+
+# Evaluation settings
+evaluateOptions:
+  maxConcurrency: 4
+  showProgressBar: true
+
+# Sharing settings (disable for security tests)
+sharing: false

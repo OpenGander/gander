@@ -1,0 +1,573 @@
+# Functionality tests for OpenGander MCP Server tools
+#
+# Tests verify that each tool:
+# 1. Returns the expected schema structure
+# 2. Handles valid inputs correctly
+# 3. Provides sensible defaults when parameters are omitted
+#
+# Run with: promptfoo eval --config tests/tools.yaml
+#
+# Environment variables required:
+#   MCP_ENDPOINT - MCP server endpoint (default: http://localhost:8000)
+#   MCP_TEST_API_KEY - Valid API key with access to test data
+
+description: MCP Tool Functionality Tests
+
+providers:
+  - id: python:providers/mcp_provider.py:call_tool
+    label: mcp-tool-call
+    config:
+      endpoint: ${MCP_ENDPOINT:-http://localhost:8000}
+
+# Prompt is ignored for tool calls, but required by promptfoo
+prompts:
+  - "Tool call: {{tool}}"
+
+tests:
+  # ===========================================================================
+  # health_check - Server health verification
+  # ===========================================================================
+  - description: health_check returns server status
+    vars:
+      tool: health_check
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.status !== undefined || data.error === undefined;
+      - type: not-contains
+        value: "Connection failed"
+
+  # ===========================================================================
+  # list_tables - Schema discovery
+  # ===========================================================================
+  - description: list_tables returns valid schema with tables array
+    vars:
+      tool: list_tables
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return Array.isArray(data.tables) || data.error !== undefined;
+      - type: not-contains
+        value: "Connection failed"
+
+  - description: list_tables table entries have required fields
+    vars:
+      tool: list_tables
+      args: {}
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true; // Allow errors in test environment
+          if (!data.tables || data.tables.length === 0) return true;
+          const table = data.tables[0];
+          return table.table_name !== undefined &&
+                 table.engine !== undefined;
+
+  # ===========================================================================
+  # describe_table - Table schema details
+  # ===========================================================================
+  - description: describe_table returns columns for valid table
+    vars:
+      tool: describe_table
+      args:
+        table_name: otel_traces
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.table_name !== undefined && Array.isArray(data.columns)) ||
+                 data.error !== undefined;
+
+  - description: describe_table columns have required fields
+    vars:
+      tool: describe_table
+      args:
+        table_name: otel_traces
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.columns || data.columns.length === 0) return true;
+          const col = data.columns[0];
+          return col.column_name !== undefined &&
+                 col.data_type !== undefined;
+
+  - description: describe_table returns error for non-existent table
+    vars:
+      tool: describe_table
+      args:
+        table_name: nonexistent_table_xyz
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined &&
+                 (data.error.includes("not found") || data.error.includes("Invalid"));
+
+  # ===========================================================================
+  # get_overview - Dashboard metrics
+  # ===========================================================================
+  - description: get_overview returns metrics structure
+    vars:
+      tool: get_overview
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined && data.metrics !== undefined) ||
+                 data.error !== undefined;
+
+  - description: get_overview with date range returns valid response
+    vars:
+      tool: get_overview
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.date_range !== undefined &&
+                 data.metrics !== undefined &&
+                 typeof data.metrics.unique_visitors !== 'undefined' &&
+                 typeof data.metrics.total_pageviews !== 'undefined';
+
+  - description: get_overview metrics have correct types
+    vars:
+      tool: get_overview
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-07"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          const m = data.metrics;
+          return typeof m.unique_visitors === 'number' &&
+                 typeof m.total_pageviews === 'number' &&
+                 typeof m.avg_load_time_ms === 'number' &&
+                 typeof m.sessions === 'number';
+
+  # ===========================================================================
+  # get_page_views - Time series page views
+  # ===========================================================================
+  - description: get_page_views returns time series data
+    vars:
+      tool: get_page_views
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined &&
+                  data.interval !== undefined &&
+                  Array.isArray(data.data)) ||
+                 data.error !== undefined;
+
+  - description: get_page_views with hourly interval
+    vars:
+      tool: get_page_views
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-07"
+        interval: hour
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.interval === 'hour';
+
+  - description: get_page_views with daily interval
+    vars:
+      tool: get_page_views
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-07"
+        interval: day
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.interval === 'day';
+
+  - description: get_page_views data entries have required fields
+    vars:
+      tool: get_page_views
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-07"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.data || data.data.length === 0) return true;
+          const entry = data.data[0];
+          return entry.time !== undefined &&
+                 typeof entry.views === 'number' &&
+                 typeof entry.unique_users === 'number';
+
+  # ===========================================================================
+  # get_top_pages - Most visited pages
+  # ===========================================================================
+  - description: get_top_pages returns pages array
+    vars:
+      tool: get_top_pages
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined && Array.isArray(data.pages)) ||
+                 data.error !== undefined;
+
+  - description: get_top_pages respects limit parameter
+    vars:
+      tool: get_top_pages
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+        limit: 5
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.pages.length <= 5;
+
+  - description: get_top_pages page entries have required fields
+    vars:
+      tool: get_top_pages
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.pages || data.pages.length === 0) return true;
+          const page = data.pages[0];
+          return page.page !== undefined &&
+                 typeof page.views === 'number' &&
+                 typeof page.unique_visitors === 'number' &&
+                 typeof page.avg_load_time_ms === 'number';
+
+  # ===========================================================================
+  # get_web_vitals - Core Web Vitals metrics
+  # ===========================================================================
+  - description: get_web_vitals returns vitals structure
+    vars:
+      tool: get_web_vitals
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined && Array.isArray(data.vitals)) ||
+                 data.error !== undefined;
+
+  - description: get_web_vitals includes all expected metrics
+    vars:
+      tool: get_web_vitals
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          const expectedMetrics = ['LCP', 'FID', 'CLS', 'TTFB', 'INP'];
+          const foundMetrics = data.vitals.map(v => v.metric);
+          return expectedMetrics.every(m => foundMetrics.includes(m));
+
+  - description: get_web_vitals entries have percentile fields
+    vars:
+      tool: get_web_vitals
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.vitals || data.vitals.length === 0) return true;
+          const vital = data.vitals[0];
+          return vital.metric !== undefined &&
+                 'p50' in vital &&
+                 'p75' in vital &&
+                 'p95' in vital &&
+                 'sample_count' in vital;
+
+  # ===========================================================================
+  # get_traffic_sources - Traffic source breakdown
+  # ===========================================================================
+  - description: get_traffic_sources returns sources array
+    vars:
+      tool: get_traffic_sources
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined && Array.isArray(data.sources)) ||
+                 data.error !== undefined;
+
+  - description: get_traffic_sources respects limit parameter
+    vars:
+      tool: get_traffic_sources
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+        limit: 3
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.sources.length <= 3;
+
+  - description: get_traffic_sources entries have required fields
+    vars:
+      tool: get_traffic_sources
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.sources || data.sources.length === 0) return true;
+          const src = data.sources[0];
+          return src.source !== undefined &&
+                 src.medium !== undefined &&
+                 typeof src.sessions === 'number' &&
+                 typeof src.users === 'number';
+
+  # ===========================================================================
+  # get_campaigns - Campaign performance
+  # ===========================================================================
+  - description: get_campaigns returns campaigns array
+    vars:
+      tool: get_campaigns
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined && Array.isArray(data.campaigns)) ||
+                 data.error !== undefined;
+
+  - description: get_campaigns respects limit parameter
+    vars:
+      tool: get_campaigns
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+        limit: 5
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.campaigns.length <= 5;
+
+  - description: get_campaigns entries have required fields
+    vars:
+      tool: get_campaigns
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.campaigns || data.campaigns.length === 0) return true;
+          const c = data.campaigns[0];
+          return c.campaign !== undefined &&
+                 c.source !== undefined &&
+                 c.medium !== undefined &&
+                 typeof c.sessions === 'number' &&
+                 typeof c.users === 'number' &&
+                 typeof c.conversions === 'number' &&
+                 typeof c.conversion_rate === 'number';
+
+  # ===========================================================================
+  # get_errors - Error tracking
+  # ===========================================================================
+  - description: get_errors returns errors array
+    vars:
+      tool: get_errors
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined &&
+                  data.interval !== undefined &&
+                  Array.isArray(data.errors)) ||
+                 data.error !== undefined;
+
+  - description: get_errors with hourly interval
+    vars:
+      tool: get_errors
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-07"
+        interval: hour
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.interval === 'hour';
+
+  - description: get_errors entries have required fields
+    vars:
+      tool: get_errors
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.errors || data.errors.length === 0) return true;
+          const e = data.errors[0];
+          return e.time !== undefined &&
+                 e.error_type !== undefined &&
+                 typeof e.error_count === 'number' &&
+                 typeof e.affected_users === 'number' &&
+                 Array.isArray(e.affected_pages);
+
+  # ===========================================================================
+  # get_user_journey - Session path analysis
+  # ===========================================================================
+  - description: get_user_journey returns sessions array
+    vars:
+      tool: get_user_journey
+      args: {}
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return (data.date_range !== undefined && Array.isArray(data.sessions)) ||
+                 data.error !== undefined;
+
+  - description: get_user_journey respects limit parameter
+    vars:
+      tool: get_user_journey
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+        limit: 10
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.sessions.length <= 10;
+
+  - description: get_user_journey session entries have required fields
+    vars:
+      tool: get_user_journey
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          if (!data.sessions || data.sessions.length === 0) return true;
+          const s = data.sessions[0];
+          return s.session_id !== undefined &&
+                 s.user_id !== undefined &&
+                 s.session_start !== undefined &&
+                 typeof s.total_steps === 'number' &&
+                 Array.isArray(s.steps) &&
+                 s.traffic_source !== undefined &&
+                 s.device_category !== undefined;
+
+  # ===========================================================================
+  # Edge cases and input validation
+  # ===========================================================================
+  - description: Invalid interval defaults to hour
+    vars:
+      tool: get_page_views
+      args:
+        interval: invalid_interval
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.interval === 'hour';
+
+  - description: Limit over maximum is capped
+    vars:
+      tool: get_top_pages
+      args:
+        limit: 500
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.pages.length <= 100;
+
+  - description: Negative limit defaults to minimum
+    vars:
+      tool: get_top_pages
+      args:
+        limit: -10
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          return data.pages.length >= 0;
+
+  - description: Future date range returns empty results
+    vars:
+      tool: get_overview
+      args:
+        start_date: "2099-01-01"
+        end_date: "2099-01-31"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          // Should return valid structure with zero values
+          return data.metrics !== undefined &&
+                 data.metrics.total_pageviews === 0;

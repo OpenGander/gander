@@ -1,0 +1,625 @@
+# Security tests for OpenGander MCP Server
+#
+# Tests verify:
+# 1. Authentication validation (invalid, expired, revoked keys)
+# 2. Tenant isolation (cannot access other tenant's data)
+# 3. SQL injection prevention
+# 4. Input sanitization
+# 5. Rate limiting behavior
+#
+# Run with: promptfoo eval --config tests/security.yaml
+#
+# Environment variables required:
+#   MCP_ENDPOINT - MCP server endpoint
+#   MCP_TEST_API_KEY - Valid API key (general access)
+#   MCP_TEST_API_KEY_TENANT_A - API key scoped to tenant A only
+#   MCP_TEST_API_KEY_TENANT_B - API key scoped to tenant B only
+#   MCP_TEST_TENANT_A_ID - Tenant A's ID
+#   MCP_TEST_TENANT_B_ID - Tenant B's ID
+#   MCP_TEST_REVOKED_KEY - A revoked API key
+#   MCP_TEST_EXPIRED_KEY - An expired API key
+
+description: MCP Server Security Tests
+
+providers:
+  - id: python:providers/mcp_provider.py:call_tool
+    label: mcp-tool-call
+    config:
+      endpoint: ${MCP_ENDPOINT:-http://localhost:8000}
+
+prompts:
+  - "Security test: {{tool}}"
+
+tests:
+  # ===========================================================================
+  # AUTHENTICATION TESTS
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Invalid API Key Tests
+  # ---------------------------------------------------------------------------
+  - description: Request without API key is rejected
+    vars:
+      tool: list_tables
+      args: {}
+      api_key: ""
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined ||
+                 data.status_code === 401 ||
+                 output.includes("Unauthorized") ||
+                 output.includes("error");
+
+  - description: Invalid API key is rejected
+    vars:
+      tool: list_tables
+      args: {}
+      api_key: "invalid_key_12345"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined ||
+                 data.status_code === 401;
+      - type: not-contains
+        value: "table_name"
+
+  - description: Malformed API key format is rejected
+    vars:
+      tool: get_overview
+      args: {}
+      api_key: "not-a-valid-key-format-at-all"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined || data.status_code >= 400;
+      - type: not-contains
+        value: "metrics"
+
+  - description: Empty string API key is rejected
+    vars:
+      tool: get_page_views
+      args: {}
+      api_key: ""
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined || data.status_code >= 400;
+
+  - description: Whitespace-only API key is rejected
+    vars:
+      tool: get_traffic_sources
+      args: {}
+      api_key: "   "
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined || data.status_code >= 400;
+
+  # ---------------------------------------------------------------------------
+  # Expired API Key Tests
+  # ---------------------------------------------------------------------------
+  - description: Expired API key is rejected
+    vars:
+      tool: list_tables
+      args: {}
+      api_key: "${MCP_TEST_EXPIRED_KEY}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Skip if no expired key is configured
+          if (!process.env.MCP_TEST_EXPIRED_KEY) return true;
+          return data.error !== undefined || data.status_code === 401;
+      - type: not-contains
+        value: "table_name"
+
+  # ---------------------------------------------------------------------------
+  # Revoked API Key Tests
+  # ---------------------------------------------------------------------------
+  - description: Revoked API key is rejected
+    vars:
+      tool: list_tables
+      args: {}
+      api_key: "${MCP_TEST_REVOKED_KEY}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Skip if no revoked key is configured
+          if (!process.env.MCP_TEST_REVOKED_KEY) return true;
+          return data.error !== undefined || data.status_code === 401;
+      - type: not-contains
+        value: "table_name"
+
+  # ===========================================================================
+  # TENANT ISOLATION TESTS
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Cross-Tenant Data Access Prevention
+  # ---------------------------------------------------------------------------
+  - description: Tenant A cannot access Tenant B data via get_overview
+    vars:
+      tool: get_overview
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Skip if tenant isolation test keys not configured
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A ||
+              !process.env.MCP_TEST_TENANT_B_ID) return true;
+          return data.error !== undefined &&
+                 (data.error.includes("Access denied") ||
+                  data.error.includes("access") ||
+                  data.message?.includes("tenant"));
+
+  - description: Tenant B cannot access Tenant A data via get_overview
+    vars:
+      tool: get_overview
+      args:
+        tenant_id: "${MCP_TEST_TENANT_A_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_B}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_B ||
+              !process.env.MCP_TEST_TENANT_A_ID) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B page views
+    vars:
+      tool: get_page_views
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B top pages
+    vars:
+      tool: get_top_pages
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B web vitals
+    vars:
+      tool: get_web_vitals
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B traffic sources
+    vars:
+      tool: get_traffic_sources
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B campaigns
+    vars:
+      tool: get_campaigns
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B errors
+    vars:
+      tool: get_errors
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  - description: Tenant A cannot access Tenant B user journeys
+    vars:
+      tool: get_user_journey
+      args:
+        tenant_id: "${MCP_TEST_TENANT_B_ID}"
+      api_key: "${MCP_TEST_API_KEY_TENANT_A}"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (!process.env.MCP_TEST_API_KEY_TENANT_A) return true;
+          return data.error !== undefined;
+
+  # ---------------------------------------------------------------------------
+  # Invalid Tenant ID Tests
+  # ---------------------------------------------------------------------------
+  - description: Non-existent tenant ID returns error
+    vars:
+      tool: get_overview
+      args:
+        tenant_id: "non-existent-tenant-id-xyz"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  - description: Empty tenant ID is handled safely
+    vars:
+      tool: get_overview
+      args:
+        tenant_id: ""
+    assert:
+      - type: is-json
+        # Should either error or use default scope
+
+  # ===========================================================================
+  # SQL INJECTION PREVENTION TESTS
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # describe_table SQL Injection Tests
+  # ---------------------------------------------------------------------------
+  - description: SQL injection blocked in table_name - DROP TABLE
+    vars:
+      tool: describe_table
+      args:
+        table_name: "otel_traces; DROP TABLE users; --"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined &&
+                 data.error.includes("Invalid table name");
+      - type: not-contains
+        value: "DROP"
+      - type: not-contains
+        value: "column_name"
+
+  - description: SQL injection blocked - UNION SELECT
+    vars:
+      tool: describe_table
+      args:
+        table_name: "otel_traces UNION SELECT * FROM api_keys"
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+      - type: not-contains
+        value: "UNION"
+
+  - description: SQL injection blocked - comment bypass
+    vars:
+      tool: describe_table
+      args:
+        table_name: "otel_traces'--"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  - description: SQL injection blocked - semicolon termination
+    vars:
+      tool: describe_table
+      args:
+        table_name: "otel_traces; SELECT password FROM users"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+      - type: not-contains
+        value: "password"
+
+  - description: SQL injection blocked - hex encoding
+    vars:
+      tool: describe_table
+      args:
+        table_name: "0x6F74656C5F747261636573"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Either validates as invalid or safely escapes
+          return data.error !== undefined ||
+                 (data.table_name === "0x6F74656C5F747261636573" && !data.columns);
+
+  # ---------------------------------------------------------------------------
+  # Date Parameter SQL Injection Tests
+  # ---------------------------------------------------------------------------
+  - description: SQL injection blocked in start_date parameter
+    vars:
+      tool: get_overview
+      args:
+        start_date: "2025-01-01'; DROP TABLE otel_traces; --"
+        end_date: "2025-01-31"
+    assert:
+      - type: is-json
+      - type: not-contains
+        value: "DROP"
+
+  - description: SQL injection blocked in end_date parameter
+    vars:
+      tool: get_page_views
+      args:
+        start_date: "2025-01-01"
+        end_date: "2025-01-31' OR '1'='1"
+    assert:
+      - type: is-json
+      - type: not-contains
+        value: "'1'='1"
+
+  # ---------------------------------------------------------------------------
+  # Tenant ID SQL Injection Tests
+  # ---------------------------------------------------------------------------
+  - description: SQL injection blocked in tenant_id parameter
+    vars:
+      tool: get_overview
+      args:
+        tenant_id: "tenant-123' OR '1'='1"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+      - type: not-contains
+        value: "'1'='1"
+
+  - description: SQL injection blocked - nested query in tenant_id
+    vars:
+      tool: get_traffic_sources
+      args:
+        tenant_id: "(SELECT TenantId FROM api_keys LIMIT 1)"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  # ---------------------------------------------------------------------------
+  # Session ID SQL Injection Tests
+  # ---------------------------------------------------------------------------
+  - description: SQL injection blocked in session_id parameter
+    vars:
+      tool: get_user_journey
+      args:
+        session_id: "session-123'; DELETE FROM user_journey; --"
+    assert:
+      - type: is-json
+      - type: not-contains
+        value: "DELETE"
+
+  # ---------------------------------------------------------------------------
+  # Limit Parameter SQL Injection Tests
+  # ---------------------------------------------------------------------------
+  - description: Non-numeric limit handled safely
+    vars:
+      tool: get_top_pages
+      args:
+        limit: "10; DROP TABLE otel_traces"
+    assert:
+      - type: is-json
+      # Should either error or use default numeric value
+
+  # ===========================================================================
+  # INPUT SANITIZATION TESTS
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # Special Character Handling
+  # ---------------------------------------------------------------------------
+  - description: Unicode characters in table_name handled safely
+    vars:
+      tool: describe_table
+      args:
+        table_name: "otel_traces\u0000\u001f"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  - description: Null bytes in parameters handled safely
+    vars:
+      tool: describe_table
+      args:
+        table_name: "otel\x00traces"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  - description: Very long table name is rejected
+    vars:
+      tool: describe_table
+      args:
+        table_name: "a_very_long_table_name_that_exceeds_reasonable_limits_and_should_be_rejected_for_safety_reasons_because_it_might_be_an_attempt_to_cause_buffer_overflow_or_similar_issues_in_the_backend_systems"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Either rejects as invalid or returns not found
+          return data.error !== undefined;
+
+  - description: Path traversal in table_name blocked
+    vars:
+      tool: describe_table
+      args:
+        table_name: "../../../etc/passwd"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  # ---------------------------------------------------------------------------
+  # Date Format Validation
+  # ---------------------------------------------------------------------------
+  - description: Invalid date format returns error or uses default
+    vars:
+      tool: get_overview
+      args:
+        start_date: "not-a-date"
+        end_date: "also-not-a-date"
+    assert:
+      - type: is-json
+      # Should either error or use default dates
+
+  - description: Extremely old date is handled safely
+    vars:
+      tool: get_page_views
+      args:
+        start_date: "1900-01-01"
+        end_date: "1900-01-31"
+    assert:
+      - type: is-json
+      # Should return valid (likely empty) response
+
+  # ===========================================================================
+  # RESPONSE SECURITY TESTS
+  # ===========================================================================
+
+  - description: Error messages do not leak sensitive information
+    vars:
+      tool: describe_table
+      args:
+        table_name: "api_keys"
+    assert:
+      - type: not-contains
+        value: "KeyHash"
+      - type: not-contains
+        value: "password"
+      # Note: This test is about what's NOT returned
+      # The describe_table tool should work but not expose hash columns
+
+  - description: Stack traces not exposed in error responses
+    vars:
+      tool: describe_table
+      args:
+        table_name: "trigger_error'; INVALID SQL"
+    assert:
+      - type: not-contains
+        value: "Traceback"
+      - type: not-contains
+        value: "File \""
+      - type: not-contains
+        value: "line "
+
+  # ===========================================================================
+  # TOOL ACCESS RESTRICTION TESTS
+  # ===========================================================================
+
+  - description: Non-existent tool returns appropriate error
+    vars:
+      tool: non_existent_tool
+      args: {}
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  - description: Tool name with special characters rejected
+    vars:
+      tool: "get_overview; rm -rf /"
+      args: {}
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  # ===========================================================================
+  # PARAMETER TYPE COERCION TESTS
+  # ===========================================================================
+
+  - description: Array injection in string parameter handled safely
+    vars:
+      tool: describe_table
+      args:
+        table_name: ["otel_traces", "api_keys"]
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          // Should either error or handle safely
+          return data.error !== undefined || data.table_name !== undefined;
+
+  - description: Object injection in string parameter handled safely
+    vars:
+      tool: describe_table
+      args:
+        table_name:
+          $ne: "something"
+    assert:
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return data.error !== undefined;
+
+  - description: Boolean as limit parameter handled safely
+    vars:
+      tool: get_top_pages
+      args:
+        limit: true
+    assert:
+      - type: is-json
+      # Should either error or use default
+
+  - description: Float as limit parameter handled safely
+    vars:
+      tool: get_top_pages
+      args:
+        limit: 10.5
+    assert:
+      - type: is-json
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          if (data.error) return true;
+          // If successful, limit should be converted to integer
+          return data.pages.length <= 11;

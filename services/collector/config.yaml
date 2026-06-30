@@ -1,0 +1,198 @@
+# OpenTelemetry Collector Configuration
+# Simple collector that accepts logs, metrics, and traces via OTLP HTTP
+# and forwards them to ClickHouse for storage and analysis
+
+receivers:
+  # OTLP receiver for traces, metrics, and logs
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        include_metadata: true
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        # Enable CORS for direct browser access (no sidecar proxy in local dev)
+        cors:
+          allowed_origins:
+            - '*'
+          allowed_headers:
+            - '*'
+          max_age: 86400
+
+  # Prometheus receiver for scraping metrics (optional)
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['localhost:8888']
+
+processors:
+  # Batch processor - improves performance by batching telemetry
+  # Conservative limits to prevent flooding attacks
+  batch:
+    timeout: 10s
+    send_batch_size: 512 # Reduced from 1024 to limit batch size
+    send_batch_max_size: 1024 # Reduced from 2048 to cap maximum batch
+
+  # Memory limiter - prevents OOM by limiting memory usage
+  # Acts as circuit breaker against data flooding attacks
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512 # Hard limit - refuse data above this
+    spike_limit_mib: 128 # Spike allowance before refusing
+
+  # Resource detection - automatically adds resource attributes
+  resourcedetection:
+    detectors: [env, system, docker]
+    timeout: 5s
+    override: false
+
+  # Resource processor - add custom resource attributes
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: production
+        action: upsert
+
+  # Attributes processor - sanitize/transform attributes and PII
+  attributes:
+    actions:
+      # Remove sensitive headers
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.set-cookie
+        action: delete
+      - key: http.response.header.set-cookie
+        action: delete
+
+  # Filter processor - drop unwanted/malformed telemetry
+  filter:
+    traces:
+      span:
+        # Drop health check spans to reduce noise
+        - 'attributes["http.target"] == "/health"'
+        - 'attributes["http.target"] == "/healthz"'
+        - 'attributes["http.target"] == "/ping"'
+
+        # Drop spans missing required fields (data validation)
+        - 'resource.attributes["service.name"] == nil'
+        - 'trace_id == nil'
+        - 'span_id == nil'
+
+        # Drop spans with suspicious characteristics
+        # Extremely short span names (likely malformed)
+        - 'Len(name) < 1'
+        # Extremely long span names (likely attack/malformed)
+        - 'Len(name) > 256'
+
+  # PII scrubbing - regex-based removal of sensitive data from telemetry
+  # Matches the privacy policy claim: "automated stripping of email addresses,
+  # phone numbers, Social Security numbers, and credit card numbers"
+  transform/pii-scrub:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          # Email addresses (user@example.com)
+          - replace_all_patterns(attributes, "value", "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "***REDACTED_EMAIL***")
+          # US phone numbers: (123) 456-7890, 123-456-7890, +1-123-456-7890
+          - replace_all_patterns(attributes, "value", "(\\+?1[-.\\s]?)?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}", "***REDACTED_PHONE***")
+          # Social Security Numbers: 123-45-6789 or 123456789
+          - replace_all_patterns(attributes, "value", "\\b\\d{3}-?\\d{2}-?\\d{4}\\b", "***REDACTED_SSN***")
+          # Credit card numbers: 1234-5678-9012-3456, 1234 5678 9012 3456
+          - replace_all_patterns(attributes, "value", "\\b\\d{4}[-.\\s]?\\d{4}[-.\\s]?\\d{4}[-.\\s]?\\d{4}\\b", "***REDACTED_CC***")
+    log_statements:
+      - context: log
+        statements:
+          # Scrub log body
+          - replace_pattern(body, "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "***REDACTED_EMAIL***")
+          - replace_pattern(body, "(\\+?1[-.\\s]?)?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}", "***REDACTED_PHONE***")
+          - replace_pattern(body, "\\b\\d{3}-?\\d{2}-?\\d{4}\\b", "***REDACTED_SSN***")
+          - replace_pattern(body, "\\b\\d{4}[-.\\s]?\\d{4}[-.\\s]?\\d{4}[-.\\s]?\\d{4}\\b", "***REDACTED_CC***")
+          # Scrub log attributes
+          - replace_all_patterns(attributes, "value", "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "***REDACTED_EMAIL***")
+          - replace_all_patterns(attributes, "value", "(\\+?1[-.\\s]?)?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}", "***REDACTED_PHONE***")
+          - replace_all_patterns(attributes, "value", "\\b\\d{3}-?\\d{2}-?\\d{4}\\b", "***REDACTED_SSN***")
+          - replace_all_patterns(attributes, "value", "\\b\\d{4}[-.\\s]?\\d{4}[-.\\s]?\\d{4}[-.\\s]?\\d{4}\\b", "***REDACTED_CC***")
+
+  # Tail sampling - intelligent sampling based on span characteristics
+  # Useful for high-traffic sites to control costs
+  # tail_sampling:
+  #   policies:
+  #     # Always sample errors
+  #     - name: error-policy
+  #       type: status_code
+  #       status_code:
+  #         status_codes: [ERROR]
+  #     # Always sample slow requests (>2s)
+  #     - name: slow-requests
+  #       type: latency
+  #       latency:
+  #         threshold_ms: 2000
+  #     # Sample 10% of normal traffic
+  #     - name: probabilistic-policy
+  #       type: probabilistic
+  #       probabilistic:
+  #         sampling_percentage: 10
+
+exporters:
+  # ClickHouse exporter for traces, metrics, and logs
+  clickhouse:
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    database: ${env:CLICKHOUSE_DATABASE}
+    username: ${env:CLICKHOUSE_USER}
+    password: ${env:CLICKHOUSE_PASSWORD}
+    ttl: 720h # 30 days
+    traces_table_name: otel_traces
+    logs_table_name: otel_logs
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      num_consumers: 10
+      queue_size: 5000
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: /health
+
+service:
+  extensions: [health_check]
+
+  pipelines:
+    # Traces pipeline
+    # TenantId is included in resource attributes by the browser SDK
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes, filter, transform/pii-scrub, batch]
+      exporters: [clickhouse]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [clickhouse]
+
+    # Logs pipeline
+    # TenantId is included in resource attributes by the browser SDK
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes, transform/pii-scrub, batch]
+      exporters: [clickhouse]
+
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
