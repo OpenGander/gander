@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 60% 98%;
+    --foreground: 106.7 15.8% 11.2%;
+    --card: 0 0% 99.6%;
+    --card-foreground: 106.7 15.8% 11.2%;
+    --popover: 0 0% 99.6%;
+    --popover-foreground: 106.7 15.8% 11.2%;
+    --primary: 129.9 56% 27.6%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 44.4% 89.4%;
+    --secondary-foreground: 109.1 9.4% 22.9%;
+    --muted: 120 30.4% 95.5%;
+    --muted-foreground: 110.8 8.3% 30.8%;
+    --accent: 123.3 34.6% 89.8%;
+    --accent-foreground: 131.5 51.6% 17.8%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 123.3 34.6% 89.8%;
+    --input: 123.3 34.6% 89.8%;
+    --ring: 128.4 50.8% 35.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 136.4 26.8% 8%;
+    --foreground: 132 12.2% 92%;
+    --card: 138 18.5% 10.6%;
+    --card-foreground: 132 12.2% 92%;
+    --popover: 138 18.5% 10.6%;
+    --popover-foreground: 132 12.2% 92%;
+    --primary: 125.9 37.1% 48%;
+    --primary-foreground: 136.4 26.8% 8%;
+    --secondary: 137.1 20% 13.7%;
+    --secondary-foreground: 132 12.2% 92%;
+    --muted: 137.1 20% 13.7%;
+    --muted-foreground: 139.2 12.6% 61%;
+    --accent: 133.6 23.4% 18.4%;
+    --accent-foreground: 135 15.7% 80%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 132 12.2% 92%;
+    --border: 133.6 23.4% 18.4%;
+    --input: 133.6 23.4% 18.4%;
+    --ring: 128.4 50.8% 35.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+  }
+}

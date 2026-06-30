@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenGander — Design Concept</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Brand Greens */
+  --green-50: #f0f7f0;
+  --green-100: #dceedd;
+  --green-200: #b5ddb8;
+  --green-300: #7ec484;
+  --green-400: #4da856;
+  --green-500: #2d8a3a;
+  --green-600: #1f6e2c;
+  --green-700: #195724;
+  --green-800: #16451f;
+  --green-900: #0f2f15;
+
+  /* Earth Tones */
+  --earth-100: #faf6f0;
+  --earth-200: #f0e8d8;
+  --earth-300: #ddd0b8;
+  --earth-400: #c4a97a;
+  --earth-500: #a08050;
+
+  /* Cream & Warmth */
+  --cream: #fdfbf7;
+  --cream-dark: #f5f0e8;
+  --warm-white: #fefefe;
+
+  /* Warm Slates */
+  --slate-500: #5a6558;
+  --slate-600: #4a5548;
+  --slate-700: #374035;
+  --slate-800: #262e24;
+  --slate-900: #1a2118;
+
+  /* Sky */
+  --sky-100: #e8f4f8;
+  --sky-200: #bde0ec;
+  --sky-500: #4a9aba;
+
+  /* Gold (the golden goose) */
+  --gold-300: #e8d5a0;
+  --gold-400: #d4b96e;
+  --gold-500: #c4a43a;
+
+  /* Dark Mode Forest */
+  --forest-950: #080e09;
+  --forest-900: #0f1a12;
+  --forest-800: #162019;
+  --forest-700: #1c2a20;
+  --forest-600: #243a29;
+  --forest-500: #2d4a33;
+  --sage-400: #6b8a72;
+  --sage-300: #8fa897;
+  --sage-200: #b3c8b8;
+  --sage-100: #d4e0d7;
+  --sage-50: #e8ede9;
+
+  /* Typography */
+  --font-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--slate-900);
+  color: var(--slate-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════
+   TAB NAVIGATION
+   ═══════════════════════════════════════ */
+.tab-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  background: var(--forest-900);
+  border-bottom: 1px solid var(--forest-600);
+  font-family: var(--font-body);
+}
+.tab-bar-label {
+  font-family: var(--font-display);
+  color: var(--sage-50);
+  font-size: 14px;
+  margin-right: 16px;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+}
+.tab-btn {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: var(--sage-300);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.tab-btn:hover { background: var(--forest-700); color: var(--sage-50); }
+.tab-btn.active { background: var(--green-600); color: white; }
+
+.screen { display: none; min-height: 100vh; padding-top: 48px; }
+.screen.active { display: block; }
+
+/* ═══════════════════════════════════════
+   SCREEN 1: SIGN IN
+   ═══════════════════════════════════════ */
+.signin {
+  background: var(--cream);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Topographic texture overlay */
+.signin::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 80%, var(--green-100) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, var(--earth-200) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 100%, var(--green-50) 0%, transparent 60%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.signin-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  padding: 40px 24px;
+}
+
+.signin-card {
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+}
+
+.signin-brand {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.signin-goose {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  background: var(--green-600);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4px 12px rgba(31, 110, 44, 0.2),
+    0 1px 3px rgba(31, 110, 44, 0.1);
+}
+
+.signin-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--slate-900);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.signin-subtitle {
+  font-size: 15px;
+  color: var(--slate-600);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.signin-form-wrapper {
+  background: var(--warm-white);
+  border: 1px solid var(--earth-200);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow:
+    0 1px 2px rgba(26, 33, 24, 0.04),
+    0 4px 16px rgba(26, 33, 24, 0.04);
+  position: relative;
+}
+
+/* Subtle corner embellishment */
+.signin-form-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 24px;
+  right: 24px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--green-500), var(--gold-400), var(--green-500), transparent);
+  border-radius: 0 0 4px 4px;
+  opacity: 0.7;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--slate-700);
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.form-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--earth-300);
+  border-radius: 10px;
+  background: var(--cream);
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--slate-900);
+  transition: all 0.2s;
+  outline: none;
+}
+
+.form-input::placeholder { color: var(--slate-500); opacity: 0.5; }
+.form-input:focus {
+  border-color: var(--green-400);
+  box-shadow: 0 0 0 3px rgba(45, 138, 58, 0.1);
+}
+
+.form-btn {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: var(--green-600);
+  color: white;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(31, 110, 44, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.form-btn:hover {
+  background: var(--green-700);
+  box-shadow: 0 4px 16px rgba(31, 110, 44, 0.3);
+  transform: translateY(-1px);
+}
+
+.form-btn::after {
+  content: '→';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: all 0.2s;
+}
+.form-btn:hover::after { opacity: 1; right: 16px; }
+
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+  font-size: 12px;
+  color: var(--slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.form-divider::before, .form-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--earth-200);
+}
+
+.signin-footer {
+  text-align: center;
+  font-size: 13px;
+  color: var(--slate-600);
+  margin-top: 24px;
+}
+.signin-footer a {
+  color: var(--green-600);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Mountain landscape at bottom */
+.signin-landscape {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════
+   SCREEN 2: APP SHELL — LIGHT MODE
+   ═══════════════════════════════════════ */
+.app-light {
+  background: var(--cream);
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--warm-white);
+  border-right: 1px solid var(--earth-200);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 48px;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--earth-200);
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-logo-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--green-600);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(31, 110, 44, 0.2);
+}
+
+.sidebar-logo-text {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--slate-900);
+  letter-spacing: -0.02em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--slate-500);
+  padding: 12px 10px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--slate-600);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  position: relative;
+}
+
+.nav-item:hover {
+  background: var(--green-50);
+  color: var(--slate-900);
+}
+
+.nav-item.active {
+  background: var(--green-50);
+  color: var(--green-700);
+  font-weight: 500;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--green-500);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.nav-item.active .nav-icon { opacity: 1; }
+
+/* Sidebar Mountain Silhouette */
+.sidebar-mountains {
+  padding: 0;
+  margin-top: auto;
+  position: relative;
+  height: 100px;
+  overflow: hidden;
+  opacity: 0.06;
+}
+
+.sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--earth-200);
+  position: relative;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sidebar-user:hover { background: var(--green-50); }
+
+.sidebar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--green-400), var(--green-600));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.sidebar-user-info {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-user-role {
+  font-size: 11px;
+  color: var(--slate-500);
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  padding: 28px 32px;
+  min-height: calc(100vh - 48px);
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--slate-900);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--slate-600);
+  margin-top: 4px;
+}
+
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  background: var(--warm-white);
+  border: 1px solid var(--earth-200);
+  border-radius: 12px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-chip {
+  padding: 6px 14px;
+  border: 1px solid var(--earth-200);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate-600);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-chip:hover {
+  border-color: var(--green-300);
+  color: var(--slate-900);
+}
+.filter-chip.active {
+  background: var(--green-600);
+  color: white;
+  border-color: var(--green-600);
+}
+
+.filter-service {
+  padding: 6px 14px;
+  border: 1px solid var(--earth-200);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--slate-600);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--warm-white);
+  border: 1px solid var(--earth-200);
+  border-radius: 14px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  border-color: var(--green-200);
+  box-shadow: 0 4px 16px rgba(26, 33, 24, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Subtle top accent line */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+}
+.stat-card:nth-child(1)::before { background: var(--green-500); }
+.stat-card:nth-child(2)::before { background: var(--gold-400); }
+.stat-card:nth-child(3)::before { background: var(--sky-500); }
+.stat-card:nth-child(4)::before { background: var(--earth-500); }
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--slate-500);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--slate-900);
+  line-height: 1.1;
+}
+
+.stat-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.stat-change.up {
+  color: var(--green-700);
+  background: var(--green-50);
+}
+.stat-change.down {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+/* Chart Cards */
+.chart-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: var(--warm-white);
+  border: 1px solid var(--earth-200);
+  border-radius: 14px;
+  padding: 24px;
+  position: relative;
+}
+
+.card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--slate-900);
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--slate-500);
+}
+
+/* Chart Placeholder */
+.chart-area {
+  height: 220px;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+}
+
+/* Mini sparkline in stat cards */
+.stat-spark {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 80px;
+  height: 40px;
+  opacity: 0.15;
+}
+
+/* ═══════════════════════════════════════
+   SCREEN 3: APP SHELL — DARK MODE
+   ═══════════════════════════════════════ */
+.app-dark {
+  background: var(--forest-900);
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-dark .sidebar {
+  background: var(--forest-950);
+  border-right-color: var(--forest-600);
+}
+.app-dark .sidebar-header {
+  border-bottom-color: var(--forest-600);
+}
+.app-dark .sidebar-logo-text { color: var(--sage-50); }
+.app-dark .nav-section-label { color: var(--sage-400); }
+.app-dark .nav-item { color: var(--sage-300); }
+.app-dark .nav-item:hover {
+  background: var(--forest-700);
+  color: var(--sage-50);
+}
+.app-dark .nav-item.active {
+  background: rgba(45, 138, 58, 0.12);
+  color: var(--green-400);
+}
+.app-dark .nav-item.active::before {
+  background: var(--green-400);
+}
+.app-dark .sidebar-footer {
+  border-top-color: var(--forest-600);
+}
+.app-dark .sidebar-user:hover { background: var(--forest-700); }
+.app-dark .sidebar-user-name { color: var(--sage-50); }
+.app-dark .sidebar-user-role { color: var(--sage-400); }
+.app-dark .sidebar-mountains { opacity: 0.04; }
+
+.app-dark .main-content { background: var(--forest-900); }
+.app-dark .page-title { color: var(--sage-50); }
+.app-dark .page-subtitle { color: var(--sage-300); }
+
+.app-dark .filter-bar {
+  background: var(--forest-800);
+  border-color: var(--forest-600);
+}
+.app-dark .filter-chip {
+  border-color: var(--forest-600);
+  color: var(--sage-300);
+}
+.app-dark .filter-chip:hover {
+  border-color: var(--green-400);
+  color: var(--sage-50);
+}
+.app-dark .filter-chip.active {
+  background: var(--green-500);
+  border-color: var(--green-500);
+  color: white;
+}
+.app-dark .filter-service {
+  border-color: var(--forest-600);
+  color: var(--sage-300);
+}
+
+.app-dark .stat-card {
+  background: var(--forest-800);
+  border-color: var(--forest-600);
+}
+.app-dark .stat-card:hover {
+  border-color: var(--forest-500);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+.app-dark .stat-label { color: var(--sage-400); }
+.app-dark .stat-value { color: var(--sage-50); }
+.app-dark .stat-change.up {
+  color: var(--green-300);
+  background: rgba(45, 138, 58, 0.12);
+}
+.app-dark .stat-change.down {
+  color: #fca5a5;
+  background: rgba(185, 28, 28, 0.12);
+}
+
+.app-dark .card {
+  background: var(--forest-800);
+  border-color: var(--forest-600);
+}
+.app-dark .card-title { color: var(--sage-50); }
+.app-dark .card-subtitle { color: var(--sage-400); }
+
+/* Glow effect on dark cards */
+.app-dark .stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(77, 168, 86, 0.03), transparent);
+  pointer-events: none;
+  border-radius: 14px 14px 0 0;
+}
+
+/* ═══════════════════════════════════════
+   SCREEN 4: CHART DETAIL CARD
+   ═══════════════════════════════════════ */
+.chart-showcase {
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.showcase-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.showcase-light { background: var(--cream); }
+.showcase-light .showcase-section-label {
+  color: var(--green-700);
+  background: var(--green-50);
+}
+
+.showcase-dark { background: var(--forest-900); padding: 48px 32px; border-radius: 20px; }
+.showcase-dark .showcase-section-label {
+  color: var(--green-400);
+  background: rgba(45, 138, 58, 0.12);
+}
+
+.detail-card {
+  border-radius: 16px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-card.light {
+  background: var(--warm-white);
+  border: 1px solid var(--earth-200);
+}
+
+.detail-card.dark {
+  background: var(--forest-800);
+  border: 1px solid var(--forest-600);
+}
+
+.detail-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.detail-card-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+}
+.detail-card.light .detail-card-title { color: var(--slate-900); }
+.detail-card.dark .detail-card-title { color: var(--sage-50); }
+
+.detail-card-period {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.detail-card.light .detail-card-period { color: var(--slate-500); }
+.detail-card.dark .detail-card-period { color: var(--sage-400); }
+
+.detail-card-badge {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.detail-card-badge.up {
+  background: var(--green-50);
+  color: var(--green-700);
+}
+.detail-card.dark .detail-card-badge.up {
+  background: rgba(45, 138, 58, 0.12);
+  color: var(--green-300);
+}
+
+.chart-container {
+  height: 240px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+/* SVG Chart Grid Lines */
+.chart-grid-line {
+  stroke-width: 1;
+}
+.detail-card.light .chart-grid-line { stroke: var(--earth-200); }
+.detail-card.dark .chart-grid-line { stroke: var(--forest-600); }
+
+.chart-axis-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+.detail-card.light .chart-axis-label { fill: var(--slate-500); }
+.detail-card.dark .chart-axis-label { fill: var(--sage-400); }
+
+/* Legend */
+.chart-legend {
+  display: flex;
+  gap: 20px;
+  padding-top: 16px;
+  border-top: 1px solid;
+}
+.detail-card.light .chart-legend { border-top-color: var(--earth-200); }
+.detail-card.dark .chart-legend { border-top-color: var(--forest-600); }
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.detail-card.light .legend-item { color: var(--slate-600); }
+.detail-card.dark .legend-item { color: var(--sage-300); }
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-value {
+  font-weight: 600;
+  margin-left: 4px;
+}
+.detail-card.light .legend-value { color: var(--slate-900); }
+.detail-card.dark .legend-value { color: var(--sage-50); }
+
+/* ═══════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stat-card { animation: fadeUp 0.4s ease-out backwards; }
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.1s; }
+.stat-card:nth-child(3) { animation-delay: 0.15s; }
+.stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+.card { animation: fadeUp 0.4s ease-out backwards; animation-delay: 0.25s; }
+
+@keyframes drawLine {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Table rows */
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 12px 0;
+  font-size: 13px;
+  border-bottom: 1px solid;
+  align-items: center;
+}
+.detail-card.light .table-row { border-bottom-color: var(--earth-100); color: var(--slate-700); }
+.detail-card.dark .table-row { border-bottom-color: var(--forest-700); color: var(--sage-200); }
+
+.table-header {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.detail-card.light .table-header { color: var(--slate-500); }
+.detail-card.dark .table-header { color: var(--sage-400); }
+
+.table-path {
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+.table-bar-cell { position: relative; }
+.table-bar {
+  height: 6px;
+  border-radius: 3px;
+  position: relative;
+}
+.detail-card.light .table-bar { background: var(--green-100); }
+.detail-card.dark .table-bar { background: var(--forest-600); }
+.table-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--green-500);
+}
+.detail-card.dark .table-bar-fill { background: var(--green-400); }
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-row { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <span class="tab-bar-label">Design Concept</span>
+  <button class="tab-btn active" onclick="switchTab('signin')">Sign In</button>
+  <button class="tab-btn" onclick="switchTab('app-light')">App — Light</button>
+  <button class="tab-btn" onclick="switchTab('app-dark')">App — Dark</button>
+  <button class="tab-btn" onclick="switchTab('charts')">Chart Cards</button>
+</div>
+
+<!-- ═══════════ SCREEN 1: SIGN IN ═══════════ -->
+<div class="screen active" id="screen-signin">
+  <div class="signin">
+    <div class="signin-content">
+      <div class="signin-card">
+        <div class="signin-brand">
+          <div class="signin-goose">
+            <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+              <path d="M4 28 L12 12 L16 18 L22 8 L32 28 Z" fill="rgba(255,255,255,0.25)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M22 8 L25 14 L28 11 L32 28" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M8 28 C10 24, 14 22, 18 24 C22 26, 26 24, 30 28" fill="none" stroke="var(--gold-400)" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+          <h1 class="signin-title">Welcome to OpenGander</h1>
+          <p class="signin-subtitle">Your trail to clear, honest analytics starts here</p>
+        </div>
+
+        <div class="signin-form-wrapper">
+          <div style="margin-bottom: 20px;">
+            <label class="form-label">Email Address</label>
+            <input type="email" class="form-input" placeholder="you@company.com">
+          </div>
+          <button class="form-btn">Send Magic Link</button>
+
+          <div class="form-divider">or continue with</div>
+
+          <button class="form-btn" style="background: var(--slate-900); box-shadow: 0 2px 8px rgba(26,33,24,0.15);">
+            Sign in with Google
+          </button>
+        </div>
+
+        <div class="signin-footer">
+          <p>New to OpenGander? <a href="#">Request access</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mountain Landscape -->
+    <div class="signin-landscape">
+      <svg viewBox="0 0 1440 200" fill="none" preserveAspectRatio="none" style="width:100%;height:100%;position:absolute;bottom:0;">
+        <!-- Far mountains -->
+        <path d="M0 140 L120 80 L240 110 L360 60 L480 90 L600 50 L720 85 L840 45 L960 75 L1080 55 L1200 70 L1320 40 L1440 80 L1440 200 L0 200Z" fill="var(--green-200)" opacity="0.4"/>
+        <!-- Mid mountains -->
+        <path d="M0 160 L100 120 L200 140 L350 95 L500 130 L650 85 L800 115 L950 80 L1100 110 L1250 90 L1350 105 L1440 95 L1440 200 L0 200Z" fill="var(--green-300)" opacity="0.35"/>
+        <!-- Near hills -->
+        <path d="M0 175 L150 145 L300 160 L450 135 L600 155 L750 130 L900 150 L1050 140 L1200 155 L1350 145 L1440 150 L1440 200 L0 200Z" fill="var(--green-500)" opacity="0.2"/>
+        <!-- Foreground -->
+        <path d="M0 185 L200 175 L400 180 L600 170 L800 178 L1000 172 L1200 180 L1440 175 L1440 200 L0 200Z" fill="var(--green-600)" opacity="0.15"/>
+        <!-- Walking path -->
+        <path d="M600 200 Q650 180 700 175 Q800 168 900 170 Q1000 172 1100 165" stroke="var(--earth-300)" stroke-width="2" stroke-dasharray="6 4" fill="none" opacity="0.5"/>
+        <!-- Tiny birds -->
+        <path d="M300 70 Q305 65 310 70" stroke="var(--slate-600)" stroke-width="1.5" fill="none" opacity="0.25"/>
+        <path d="M320 60 Q324 56 328 60" stroke="var(--slate-600)" stroke-width="1.2" fill="none" opacity="0.2"/>
+        <path d="M800 55 Q804 51 808 55" stroke="var(--slate-600)" stroke-width="1.2" fill="none" opacity="0.2"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCREEN 2: APP LIGHT ═══════════ -->
+<div class="screen" id="screen-app-light">
+  <div class="app-light">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">
+            <svg width="22" height="22" viewBox="0 0 36 36" fill="none">
+              <path d="M4 28 L12 12 L16 18 L22 8 L32 28 Z" fill="rgba(255,255,255,0.25)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M22 8 L25 14 L28 11 L32 28" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M8 28 C10 24, 14 22, 18 24 C22 26, 26 24, 30 28" fill="none" stroke="var(--gold-400)" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+          <span class="sidebar-logo-text">OpenGander</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Analytics</div>
+        <button class="nav-item active">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/></svg>
+          Overview
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10h4l3-6 3 12 3-6h4"/></svg>
+          Journey
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16V8l4-4 4 4v8"/><path d="M12 12l4-4v8"/></svg>
+          Marketing
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 3"/></svg>
+          Performance
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h12v12H4z" rx="1.5"/><path d="M4 8h12M8 4v12"/></svg>
+          Content
+        </button>
+
+        <div class="nav-section-label">Monitoring</div>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 7v3M10 13h.01"/></svg>
+          Errors
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4 4 8-8"/></svg>
+          Validation
+        </button>
+      </nav>
+
+      <!-- Mountain silhouette at sidebar bottom -->
+      <div class="sidebar-mountains">
+        <svg viewBox="0 0 240 100" fill="currentColor" preserveAspectRatio="none" style="width:100%;height:100%;color:var(--green-600)">
+          <path d="M0 60 L30 35 L60 50 L90 25 L120 40 L150 20 L180 35 L210 15 L240 30 L240 100 L0 100Z"/>
+        </svg>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="1.5"/><path d="M10 3a7 7 0 0 1 0 14"/><circle cx="10" cy="10" r="7"/></svg>
+          Settings
+        </button>
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">CB</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Chris Baldwin</div>
+            <div class="sidebar-user-role">Superadmin</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--slate-500)" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Overview</h1>
+        <p class="page-subtitle">Your analytics at a glance — last 7 days</p>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group">
+          <div class="filter-service">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/></svg>
+            All Services
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+          </div>
+          <span style="color:var(--slate-500);font-size:13px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px;margin-right:4px;"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>
+            Mar 21 — Mar 28, 2026
+          </span>
+        </div>
+        <div class="filter-group">
+          <button class="filter-chip active">7 Days</button>
+          <button class="filter-chip">30 Days</button>
+          <button class="filter-chip">90 Days</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Visitors</div>
+          <div class="stat-value">12,847</div>
+          <span class="stat-change up">↑ 14.2%</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Page Views</div>
+          <div class="stat-value">48,291</div>
+          <span class="stat-change up">↑ 8.7%</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg. Load Time</div>
+          <div class="stat-value">1.2s</div>
+          <span class="stat-change down">↑ 0.3s</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Sessions</div>
+          <div class="stat-value">23,104</div>
+          <span class="stat-change up">↑ 11.5%</span>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Page Views</span>
+            <span class="card-subtitle">Daily trend</span>
+          </div>
+          <div class="chart-area">
+            <svg viewBox="0 0 600 200" fill="none" style="width:100%;height:100%;">
+              <!-- Grid lines -->
+              <line x1="0" y1="50" x2="600" y2="50" stroke="var(--earth-200)" stroke-width="0.5"/>
+              <line x1="0" y1="100" x2="600" y2="100" stroke="var(--earth-200)" stroke-width="0.5"/>
+              <line x1="0" y1="150" x2="600" y2="150" stroke="var(--earth-200)" stroke-width="0.5"/>
+              <!-- Area fill -->
+              <path d="M0 160 L60 140 L120 120 L180 130 L240 100 L300 80 L360 90 L420 60 L480 70 L540 50 L600 55 L600 200 L0 200Z" fill="url(#areaGrad)" opacity="0.3"/>
+              <!-- Line -->
+              <path d="M0 160 L60 140 L120 120 L180 130 L240 100 L300 80 L360 90 L420 60 L480 70 L540 50 L600 55" stroke="var(--green-500)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <!-- Dots -->
+              <circle cx="300" cy="80" r="4" fill="var(--green-500)"/>
+              <circle cx="420" cy="60" r="4" fill="var(--green-500)"/>
+              <circle cx="540" cy="50" r="4" fill="var(--green-500)"/>
+              <defs>
+                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--green-400)" stop-opacity="0.4"/>
+                  <stop offset="100%" stop-color="var(--green-400)" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              <!-- Axis labels -->
+              <text x="0" y="195" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)">Mon</text>
+              <text x="120" y="195" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)">Wed</text>
+              <text x="300" y="195" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)">Fri</text>
+              <text x="480" y="195" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)">Sun</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Traffic Sources</span>
+            <span class="card-subtitle">This week</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--slate-700);">Direct</span>
+                <span style="font-weight:600;color:var(--slate-900);">42%</span>
+              </div>
+              <div style="height:6px;background:var(--earth-200);border-radius:3px;">
+                <div style="width:42%;height:100%;background:var(--green-500);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--slate-700);">Organic Search</span>
+                <span style="font-weight:600;color:var(--slate-900);">28%</span>
+              </div>
+              <div style="height:6px;background:var(--earth-200);border-radius:3px;">
+                <div style="width:28%;height:100%;background:var(--gold-400);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--slate-700);">Referral</span>
+                <span style="font-weight:600;color:var(--slate-900);">18%</span>
+              </div>
+              <div style="height:6px;background:var(--earth-200);border-radius:3px;">
+                <div style="width:18%;height:100%;background:var(--sky-500);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--slate-700);">Social</span>
+                <span style="font-weight:600;color:var(--slate-900);">12%</span>
+              </div>
+              <div style="height:6px;background:var(--earth-200);border-radius:3px;">
+                <div style="width:12%;height:100%;background:var(--earth-500);border-radius:3px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCREEN 3: APP DARK ═══════════ -->
+<div class="screen" id="screen-app-dark">
+  <div class="app-dark">
+    <!-- Sidebar (dark variant) -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">
+            <svg width="22" height="22" viewBox="0 0 36 36" fill="none">
+              <path d="M4 28 L12 12 L16 18 L22 8 L32 28 Z" fill="rgba(255,255,255,0.25)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M22 8 L25 14 L28 11 L32 28" fill="none" stroke="white" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M8 28 C10 24, 14 22, 18 24 C22 26, 26 24, 30 28" fill="none" stroke="var(--gold-400)" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+          <span class="sidebar-logo-text">OpenGander</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Analytics</div>
+        <button class="nav-item active">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5"/></svg>
+          Overview
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 10h4l3-6 3 12 3-6h4"/></svg>
+          Journey
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16V8l4-4 4 4v8"/><path d="M12 12l4-4v8"/></svg>
+          Marketing
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 3"/></svg>
+          Performance
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h12v12H4z" rx="1.5"/><path d="M4 8h12M8 4v12"/></svg>
+          Content
+        </button>
+
+        <div class="nav-section-label">Monitoring</div>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M10 7v3M10 13h.01"/></svg>
+          Errors
+        </button>
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4 4 8-8"/></svg>
+          Validation
+        </button>
+      </nav>
+
+      <div class="sidebar-mountains">
+        <svg viewBox="0 0 240 100" fill="currentColor" preserveAspectRatio="none" style="width:100%;height:100%;color:var(--green-400)">
+          <path d="M0 60 L30 35 L60 50 L90 25 L120 40 L150 20 L180 35 L210 15 L240 30 L240 100 L0 100Z"/>
+        </svg>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="1.5"/><path d="M10 3a7 7 0 0 1 0 14"/><circle cx="10" cy="10" r="7"/></svg>
+          Settings
+        </button>
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">CB</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name">Chris Baldwin</div>
+            <div class="sidebar-user-role">Superadmin</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--sage-400)" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content (dark) -->
+    <div class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Overview</h1>
+        <p class="page-subtitle">Your analytics at a glance — last 7 days</p>
+      </div>
+
+      <div class="filter-bar">
+        <div class="filter-group">
+          <div class="filter-service">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/></svg>
+            All Services
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+          </div>
+          <span style="color:var(--sage-400);font-size:13px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px;margin-right:4px;"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6h12"/></svg>
+            Mar 21 — Mar 28, 2026
+          </span>
+        </div>
+        <div class="filter-group">
+          <button class="filter-chip active">7 Days</button>
+          <button class="filter-chip">30 Days</button>
+          <button class="filter-chip">90 Days</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Visitors</div>
+          <div class="stat-value">12,847</div>
+          <span class="stat-change up">↑ 14.2%</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Page Views</div>
+          <div class="stat-value">48,291</div>
+          <span class="stat-change up">↑ 8.7%</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg. Load Time</div>
+          <div class="stat-value">1.2s</div>
+          <span class="stat-change down">↑ 0.3s</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Sessions</div>
+          <div class="stat-value">23,104</div>
+          <span class="stat-change up">↑ 11.5%</span>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Page Views</span>
+            <span class="card-subtitle">Daily trend</span>
+          </div>
+          <div class="chart-area">
+            <svg viewBox="0 0 600 200" fill="none" style="width:100%;height:100%;">
+              <line x1="0" y1="50" x2="600" y2="50" stroke="var(--forest-600)" stroke-width="0.5"/>
+              <line x1="0" y1="100" x2="600" y2="100" stroke="var(--forest-600)" stroke-width="0.5"/>
+              <line x1="0" y1="150" x2="600" y2="150" stroke="var(--forest-600)" stroke-width="0.5"/>
+              <path d="M0 160 L60 140 L120 120 L180 130 L240 100 L300 80 L360 90 L420 60 L480 70 L540 50 L600 55 L600 200 L0 200Z" fill="url(#areaGradDark)" opacity="0.25"/>
+              <path d="M0 160 L60 140 L120 120 L180 130 L240 100 L300 80 L360 90 L420 60 L480 70 L540 50 L600 55" stroke="var(--green-400)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="300" cy="80" r="4" fill="var(--green-400)"/>
+              <circle cx="420" cy="60" r="4" fill="var(--green-400)"/>
+              <circle cx="540" cy="50" r="4" fill="var(--green-400)"/>
+              <defs>
+                <linearGradient id="areaGradDark" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--green-400)" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="var(--green-400)" stop-opacity="0.01"/>
+                </linearGradient>
+              </defs>
+              <text x="0" y="195" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)">Mon</text>
+              <text x="120" y="195" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)">Wed</text>
+              <text x="300" y="195" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)">Fri</text>
+              <text x="480" y="195" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)">Sun</text>
+            </svg>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Traffic Sources</span>
+            <span class="card-subtitle">This week</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--sage-300);">Direct</span>
+                <span style="font-weight:600;color:var(--sage-50);">42%</span>
+              </div>
+              <div style="height:6px;background:var(--forest-600);border-radius:3px;">
+                <div style="width:42%;height:100%;background:var(--green-400);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--sage-300);">Organic Search</span>
+                <span style="font-weight:600;color:var(--sage-50);">28%</span>
+              </div>
+              <div style="height:6px;background:var(--forest-600);border-radius:3px;">
+                <div style="width:28%;height:100%;background:var(--gold-400);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--sage-300);">Referral</span>
+                <span style="font-weight:600;color:var(--sage-50);">18%</span>
+              </div>
+              <div style="height:6px;background:var(--forest-600);border-radius:3px;">
+                <div style="width:18%;height:100%;background:var(--sky-500);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;">
+                <span style="color:var(--sage-300);">Social</span>
+                <span style="font-weight:600;color:var(--sage-50);">12%</span>
+              </div>
+              <div style="height:6px;background:var(--forest-600);border-radius:3px;">
+                <div style="width:12%;height:100%;background:var(--earth-400);border-radius:3px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCREEN 4: CHART CARDS ═══════════ -->
+<div class="screen" id="screen-charts">
+  <div class="chart-showcase showcase-light">
+    <div>
+      <div class="showcase-section-label">Light Mode — Data Card</div>
+      <div class="detail-card light">
+        <div class="detail-card-header">
+          <div>
+            <div class="detail-card-title">Page Views Over Time</div>
+            <div class="detail-card-period">March 21 — March 28, 2026</div>
+          </div>
+          <div class="detail-card-badge up">↑ 14.2% vs prior</div>
+        </div>
+
+        <div class="chart-container">
+          <svg viewBox="0 0 800 220" fill="none" style="width:100%;height:100%;">
+            <!-- Grid -->
+            <line x1="40" y1="20" x2="780" y2="20" class="chart-grid-line" stroke="var(--earth-200)" stroke-width="0.5"/>
+            <line x1="40" y1="70" x2="780" y2="70" class="chart-grid-line" stroke="var(--earth-200)" stroke-width="0.5"/>
+            <line x1="40" y1="120" x2="780" y2="120" class="chart-grid-line" stroke="var(--earth-200)" stroke-width="0.5"/>
+            <line x1="40" y1="170" x2="780" y2="170" class="chart-grid-line" stroke="var(--earth-200)" stroke-width="0.5"/>
+
+            <!-- Y-axis labels -->
+            <text x="32" y="24" class="chart-axis-label" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="end">8k</text>
+            <text x="32" y="74" class="chart-axis-label" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="end">6k</text>
+            <text x="32" y="124" class="chart-axis-label" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="end">4k</text>
+            <text x="32" y="174" class="chart-axis-label" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="end">2k</text>
+
+            <!-- X-axis labels -->
+            <text x="80" y="200" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 21</text>
+            <text x="240" y="200" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 23</text>
+            <text x="400" y="200" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 25</text>
+            <text x="560" y="200" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 27</text>
+            <text x="720" y="200" fill="var(--slate-500)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 28</text>
+
+            <!-- Area fills -->
+            <path d="M80 140 L185 110 L290 120 L400 80 L505 60 L610 70 L720 45 L720 180 L80 180Z" fill="url(#chartAreaLight1)" opacity="0.2"/>
+            <path d="M80 160 L185 145 L290 150 L400 130 L505 120 L610 125 L720 110 L720 180 L80 180Z" fill="url(#chartAreaLight2)" opacity="0.15"/>
+
+            <!-- Lines -->
+            <path d="M80 140 L185 110 L290 120 L400 80 L505 60 L610 70 L720 45" stroke="var(--green-500)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M80 160 L185 145 L290 150 L400 130 L505 120 L610 125 L720 110" stroke="var(--gold-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 3"/>
+
+            <!-- Data points -->
+            <circle cx="400" cy="80" r="4" fill="var(--green-500)" stroke="white" stroke-width="2"/>
+            <circle cx="720" cy="45" r="4" fill="var(--green-500)" stroke="white" stroke-width="2"/>
+
+            <defs>
+              <linearGradient id="chartAreaLight1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--green-400)"/>
+                <stop offset="100%" stop-color="var(--green-400)" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="chartAreaLight2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--gold-400)"/>
+                <stop offset="100%" stop-color="var(--gold-400)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--green-500)"></div>
+            This period <span class="legend-value">48,291</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--gold-400)"></div>
+            Prior period <span class="legend-value">42,180</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Pages Table Card - Light -->
+    <div style="margin-top:24px;">
+      <div class="showcase-section-label">Light Mode — Table Card</div>
+      <div class="detail-card light">
+        <div class="detail-card-header">
+          <div>
+            <div class="detail-card-title">Top Pages</div>
+            <div class="detail-card-period">By total page views</div>
+          </div>
+        </div>
+
+        <div class="table-row table-header">
+          <span>Page</span>
+          <span>Views</span>
+          <span>Avg. Time</span>
+          <span>Share</span>
+        </div>
+        <div class="table-row">
+          <span class="table-path">/</span>
+          <span>12,847</span>
+          <span>1m 23s</span>
+          <div class="table-bar-cell">
+            <div class="table-bar"><div class="table-bar-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+        <div class="table-row">
+          <span class="table-path">/pricing</span>
+          <span>8,291</span>
+          <span>2m 45s</span>
+          <div class="table-bar-cell">
+            <div class="table-bar"><div class="table-bar-fill" style="width:65%"></div></div>
+          </div>
+        </div>
+        <div class="table-row">
+          <span class="table-path">/about</span>
+          <span>4,102</span>
+          <span>1m 12s</span>
+          <div class="table-bar-cell">
+            <div class="table-bar"><div class="table-bar-fill" style="width:32%"></div></div>
+          </div>
+        </div>
+        <div class="table-row" style="border-bottom:none;">
+          <span class="table-path">/blog/analytics-guide</span>
+          <span>2,847</span>
+          <span>4m 02s</span>
+          <div class="table-bar-cell">
+            <div class="table-bar"><div class="table-bar-fill" style="width:22%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dark Mode Chart -->
+    <div class="showcase-dark" style="margin-top:48px;">
+      <div class="showcase-section-label">Dark Mode — Data Card</div>
+      <div class="detail-card dark">
+        <div class="detail-card-header">
+          <div>
+            <div class="detail-card-title">Page Views Over Time</div>
+            <div class="detail-card-period">March 21 — March 28, 2026</div>
+          </div>
+          <div class="detail-card-badge up">↑ 14.2% vs prior</div>
+        </div>
+
+        <div class="chart-container">
+          <svg viewBox="0 0 800 220" fill="none" style="width:100%;height:100%;">
+            <line x1="40" y1="20" x2="780" y2="20" stroke="var(--forest-600)" stroke-width="0.5"/>
+            <line x1="40" y1="70" x2="780" y2="70" stroke="var(--forest-600)" stroke-width="0.5"/>
+            <line x1="40" y1="120" x2="780" y2="120" stroke="var(--forest-600)" stroke-width="0.5"/>
+            <line x1="40" y1="170" x2="780" y2="170" stroke="var(--forest-600)" stroke-width="0.5"/>
+
+            <text x="32" y="24" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="end">8k</text>
+            <text x="32" y="74" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="end">6k</text>
+            <text x="32" y="124" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="end">4k</text>
+            <text x="32" y="174" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="end">2k</text>
+
+            <text x="80" y="200" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 21</text>
+            <text x="240" y="200" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 23</text>
+            <text x="400" y="200" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 25</text>
+            <text x="560" y="200" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 27</text>
+            <text x="720" y="200" fill="var(--sage-400)" font-size="10" font-family="var(--font-body)" text-anchor="middle">Mar 28</text>
+
+            <path d="M80 140 L185 110 L290 120 L400 80 L505 60 L610 70 L720 45 L720 180 L80 180Z" fill="url(#chartAreaDark1)" opacity="0.2"/>
+            <path d="M80 160 L185 145 L290 150 L400 130 L505 120 L610 125 L720 110 L720 180 L80 180Z" fill="url(#chartAreaDark2)" opacity="0.12"/>
+
+            <path d="M80 140 L185 110 L290 120 L400 80 L505 60 L610 70 L720 45" stroke="var(--green-400)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M80 160 L185 145 L290 150 L400 130 L505 120 L610 125 L720 110" stroke="var(--gold-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 3"/>
+
+            <circle cx="400" cy="80" r="4" fill="var(--green-400)" stroke="var(--forest-800)" stroke-width="2"/>
+            <circle cx="720" cy="45" r="4" fill="var(--green-400)" stroke="var(--forest-800)" stroke-width="2"/>
+
+            <defs>
+              <linearGradient id="chartAreaDark1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--green-400)"/>
+                <stop offset="100%" stop-color="var(--green-400)" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="chartAreaDark2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--gold-400)"/>
+                <stop offset="100%" stop-color="var(--gold-400)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--green-400)"></div>
+            This period <span class="legend-value">48,291</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--gold-400)"></div>
+            Prior period <span class="legend-value">42,180</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dark Table Card -->
+      <div style="margin-top:24px;">
+        <div class="showcase-section-label">Dark Mode — Table Card</div>
+        <div class="detail-card dark">
+          <div class="detail-card-header">
+            <div>
+              <div class="detail-card-title">Top Pages</div>
+              <div class="detail-card-period">By total page views</div>
+            </div>
+          </div>
+
+          <div class="table-row table-header">
+            <span>Page</span>
+            <span>Views</span>
+            <span>Avg. Time</span>
+            <span>Share</span>
+          </div>
+          <div class="table-row">
+            <span class="table-path">/</span>
+            <span>12,847</span>
+            <span>1m 23s</span>
+            <div class="table-bar-cell">
+              <div class="table-bar"><div class="table-bar-fill" style="width:100%"></div></div>
+            </div>
+          </div>
+          <div class="table-row">
+            <span class="table-path">/pricing</span>
+            <span>8,291</span>
+            <span>2m 45s</span>
+            <div class="table-bar-cell">
+              <div class="table-bar"><div class="table-bar-fill" style="width:65%"></div></div>
+            </div>
+          </div>
+          <div class="table-row">
+            <span class="table-path">/about</span>
+            <span>4,102</span>
+            <span>1m 12s</span>
+            <div class="table-bar-cell">
+              <div class="table-bar"><div class="table-bar-fill" style="width:32%"></div></div>
+            </div>
+          </div>
+          <div class="table-row" style="border-bottom:none;">
+            <span class="table-path">/blog/analytics-guide</span>
+            <span>2,847</span>
+            <span>4m 02s</span>
+            <div class="table-bar-cell">
+              <div class="table-bar"><div class="table-bar-fill" style="width:22%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
