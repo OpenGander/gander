@@ -1,0 +1,99 @@
+# Full stack overlay — the complete self-hosted deployment (no AWS).
+# Adds the app containers on top of the base infra (clickhouse + postgres +
+# collector). Run via `make up`, or:
+#   docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.full.yml up --build
+#
+# Identity/auth/config live in self-hosted Postgres. The one-shot `web-migrate`
+# service applies Drizzle migrations before `web` starts.
+
+services:
+  # One-shot: apply Postgres (Drizzle) migrations, then exit. `web` waits on it.
+  # Built from the `builder` stage because the production runner image is a
+  # Next.js standalone bundle that omits tsx/drizzle and the migration source.
+  web-migrate:
+    build:
+      context: ../../apps/web
+      target: builder
+    command: ['npm', 'run', 'db:migrate']
+    env_file:
+      - env/base.env
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../../apps/web
+    ports:
+      - '3003:3000'
+    env_file:
+      - env/base.env
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_APP_URL=http://localhost:3003
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      # JWT_SECRET (web session signing) is sourced from env/base.env.
+      - SESSION_MAX_AGE=604800
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mock}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      web-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      # 127.0.0.1 (not localhost) — busybox wget resolves localhost to IPv6 ::1,
+      # but the Next.js standalone server binds IPv4 0.0.0.0 only.
+      test: ['CMD', 'wget', '--spider', '-q', '127.0.0.1:3000/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  token-service:
+    build:
+      context: ../../services/token-service
+    ports:
+      - '3001:3001'
+    env_file:
+      - env/base.env
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=token-service
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', '127.0.0.1:3001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Deferred to the GenAI re-theme. Gated behind the `mcp` profile so the default
+  # `make up` stays clean. Currently ships analytics-shaped tools and a missing
+  # aiohttp dep; both get addressed when the tools are re-themed for GenAI.
+  # Run with: docker compose ... --profile mcp up
+  mcp-server:
+    profiles: ['mcp']
+    build:
+      context: ../../services/mcp-server
+    ports:
+      - '8000:8000'
+    env_file:
+      - env/base.env
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_DATABASE=opengander
+      - MCP_PORT=8000
+    depends_on:
+      clickhouse:
+        condition: service_healthy

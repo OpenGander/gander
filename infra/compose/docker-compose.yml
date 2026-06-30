@@ -1,0 +1,63 @@
+# Base stack — telemetry + control-plane infrastructure.
+# Run infra only (then `npm run dev` on the host):
+#   docker compose -f infra/compose/docker-compose.yml up -d
+# For the full self-hosted stack, prefer `make up` (adds the app overlay).
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3
+    ports:
+      - '8123:8123' # HTTP (app queries)
+      - '9000:9000' # native TCP (collector exporter)
+    volumes:
+      - ../clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - clickhouse-data:/var/lib/clickhouse
+    env_file: env/base.env
+    environment:
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', '127.0.0.1:8123/ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    env_file: env/base.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-opengander}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-opengander}
+      - POSTGRES_DB=${POSTGRES_DB:-opengander}
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-opengander} -d ${POSTGRES_DB:-opengander}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.139.0
+    ports:
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP
+      - '8888:8888' # collector self-metrics
+      - '13133:13133' # health check extension
+    volumes:
+      - ../../services/collector/config.yaml:/etc/otel-collector-config.yaml:ro
+    command: ['--config=/etc/otel-collector-config.yaml']
+    env_file: env/base.env
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
+volumes:
+  clickhouse-data:
+  postgres-data:

@@ -1,0 +1,15 @@
+# Standalone Jaeger for eyeballing spans during development — NOT composed with
+# the base stack (it binds the same OTLP ports). Point an instrumented app
+# straight at it to inspect traces without the full pipeline.
+#   docker compose -f infra/compose/docker-compose.test.yml up -d
+#   Jaeger UI: http://localhost:16686   OTLP HTTP: http://localhost:4318
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '4317:4317' # OTLP gRPC
+      - '4318:4318' # OTLP HTTP

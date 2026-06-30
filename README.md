@@ -41,8 +41,15 @@ cp infra/compose/env/base.env infra/compose/env/local.env   # edit secrets
 make up                                                       # bring up the full stack
 ```
 
-Then point an OTel-instrumented LLM app at the collector and open the dashboard.
-See [`docs/self-host.md`](docs/self-host.md) (coming soon).
+Then point an OTel-instrumented LLM app at the collector (`http://localhost:4318`)
+and open the dashboard at `http://localhost:3003`.
+
+## Documentation
+
+- [**Architecture**](docs/architecture.md) — how the pipeline fits together, the
+  data model, and current implementation status.
+- [**Usage**](docs/usage.md) — running the stack, instrumenting your app, and
+  configuration.
 
 ## License
 
